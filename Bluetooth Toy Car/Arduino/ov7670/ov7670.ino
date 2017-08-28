@@ -2,41 +2,59 @@
 Interfacing OV7670 Camera module with
 Arduino Uno.
 Work in Progress.
-Author: Hardik Kalasua
+Current Status: Successful SCCB interfacing. Can Read/Write OV7670 register values. 
+Author: Hardik Kalasua (hardik.kalasua@gmail.com)
+
+NOTE: OV7670 SCCB interface does't work if XCLK not provided.
 */
+
+
 #include <Wire.h>
 
 void setup()
 { 
   noInterrupts(); //Disable all interrupts
-  XClk_setup(); //Setup 8MHz clock at pin 11
-  twi_setup(); // Setup SCL for 100KHz
-  ovPin_setup(); // Setup Data-in and interrupt pins from camera 
-  Wire.begin(); // join i2c bus (address optional for master)
-  delay(3000);
-  
+  XCLK_SETUP();   //Setup 8MHz clock at pin 11
+//TWI_SETUP();    // Setup SCL for 100KHz
+//OV7670_PINS();  // Setup Data-in and interrupt pins from camera
+  delay(1000);
+  interrupts();
+  Wire.begin();
   Serial.begin(9600);
+
+  delay(100);
+
+  // Slave 7-bit address is 0x21.
+  // R/W bit set automatically by Wire functions
+  // dont write 0x42 or 0x43 for slave address
+  Wire.beginTransmission(0x21);
+  // Reset all register values
+  Wire.write(0x12);  
+  Wire.write(0x80);
+  Wire.endTransmission();
+  delay(500); // wait for reset to complete
+
   
 }
 
 void loop(){
-  Serial.print("0");
-  Wire.beginTransmission(43); // device write address is 42
-  Serial.print("1");
-  Wire.write(byte(0x01));
-  Serial.print("2");
-  Wire.requestFrom(43,1);
-  Serial.print("3");
-  byte readByte = Wire.read();
-  Serial.print("4");
-  Serial.println(readByte);
-  Serial.print("5");
+  // Reading from a register is done in two steps
+  // Step 1: Write register address to the slave 
+  // from which data is to be read. 
+  Wire.beginTransmission(0x21); // 7-bit Slave address
+  Wire.write(0x11);  // reading from register 0x11
   Wire.endTransmission();
-  Serial.print("6");
+
+  // Step 2: Read 1 byte from Slave
+  Wire.requestFrom(0x21, 1);
+  Serial.println(Wire.available());
+  Serial.println(Wire.read());
+  delay(5000);
+  
   
 }
 
-void XClk_setup(void){
+void XCLK_SETUP(void){
   pinMode(11, OUTPUT); //Set pin 11 to output
   
   //Initialize timer 2
@@ -58,7 +76,10 @@ void XClk_setup(void){
 
 }
 
-void twi_setup(void){
+// Two Wire Interface Setup
+// Sets the frequency of the SCL line
+// Default is 100KHz so we won't use this function
+void TWI_SETUP(void){
   //Set prescaler bits in TWI Status Register (TWSR) to 0
   TWSR &= ~3;
   //Set SCL frequency to 100KHz
@@ -67,7 +88,7 @@ void twi_setup(void){
   TWBR = 72;
 }
 
-void ovPin_setup(void){
+void OV7670_PINS(void){
   //Setup Data input pins and Interrupt pins
   //DDRC bits 3:0 = 0 =>  bits configured as Data Inputs
   //DDRC 3:0 - A3,A2,A1,A0
