@@ -71,6 +71,24 @@ void WriteOV7670(byte regID, byte regVal){
   delay(1);
   
   }
+
+void ReadOV7670(byte regID){
+  // Reading from a register is done in two steps
+  // Step 1: Write register address to the slave 
+  // from which data is to be read. 
+  Wire.beginTransmission(0x21); // 7-bit Slave address
+  Wire.write(regID);  // reading from register 0x11
+  Wire.endTransmission();
+
+  // Step 2: Read 1 byte from Slave
+  Wire.requestFrom(0x21, 1);
+  Serial.print("Read request Status:");
+  Serial.println(Wire.available());
+  Serial.print(regID,HEX);
+  Serial.print(":");
+  Serial.println(Wire.read(),HEX);
+  }
+
 void XCLK_SETUP(void){
   pinMode(9, OUTPUT); //Set pin 9 to output
   
