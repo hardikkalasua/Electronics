@@ -4,12 +4,14 @@ DC motor code
 */
 
 // Define constants at the top
-int m1A = 6;
-int m1B = 5;
-int m2A = 9;
-int m2B = 10;
+int mleftA = 5;
+int mleftB = 6;
+int mrightA = 10;
+int mrightB = 11;
 int levelLeft = 0;
 int levelRight = 0;
+int levelLin = 0;
+int levelDir = 0;
 const byte numChars = 9;
 char receivedChars[numChars];
 boolean newData = false;
@@ -22,20 +24,44 @@ void setup(){
   //initialize pins as outputs
   Serial.begin(9600);  
   Serial.println("<Arduino is ready!>");
-  pinMode(m1A, OUTPUT);
-  pinMode(m1B, OUTPUT);
-  pinMode(m2A, OUTPUT);
-  pinMode(m2B, OUTPUT);
+  pinMode(mleftA, OUTPUT);
+  pinMode(mleftB, OUTPUT);
+  pinMode(mrightA, OUTPUT);
+  pinMode(mrightB, OUTPUT);
 }
 
 void loop(){
   recvWithStartEndMarkers();
   showNewData();
-  levelLeft = calculateLevelLeft();
-  levelRight = calculateLevelRight();
-  motion(receivedChars[0], levelLeft, m1A, m1B);
-  motion(receivedChars[4], levelRight, m2A, m2B);
+  levelLin = calculateLevelLin();
+  levelDir = calculateLevelDir();
+  levelLeft = calculatelevelLeft(receivedChars[4],levelDir,levelLin);
+  levelRight = calculatelevelRight(receivedChars[4],levelDir,levelLin);
+  if(levelLeft>255){levelLeft = 255;}
+  if(levelLeft<0){levelLeft = 0;}
+  if(levelRight>255){levelRight = 255;}
+  if(levelRight<0){levelRight = 0;}
+
+  motion(receivedChars[0], levelLeft, levelRight);
   
+}
+
+
+int calculatelevelRight(char dir, int levelDir, int levelLin){
+    if(dir == 'l'){
+      return (levelLin + levelDir/2);
+    }else{
+      return (levelLin - levelDir/2);
+    }
+
+}
+
+int calculatelevelLeft(char dir, int levelDir, int levelLin){
+    if(dir == 'l'){
+      return (levelLin - levelDir/2);
+    }else{
+      return (levelLin + levelDir/2);
+    }
 }
 
 void recvWithStartEndMarkers(){
@@ -77,7 +103,7 @@ void showNewData(){
   }   
 }
 
-int calculateLevelLeft(){
+int calculateLevelLin(){
   int huns = receivedChars[1] - '0';
   int tens = receivedChars[2] - '0';
   int ones = receivedChars[3] - '0';
@@ -86,7 +112,7 @@ int calculateLevelLeft(){
   return level;
 }
 
-int calculateLevelRight(){
+int calculateLevelDir(){
   int huns = receivedChars[5] - '0';
   int tens = receivedChars[6] - '0';
   int ones = receivedChars[7] - '0';
@@ -96,16 +122,21 @@ int calculateLevelRight(){
 }
 
 
-void motion(char dir, int level, int pinA, int pinB){
+void motion(char dir, int left, int right){
   if(dir == '+'){
-    analogWrite(pinA, level);
-    analogWrite(pinB, LOW);
+    analogWrite(mleftA, left);
+    analogWrite(mleftB, LOW);
+    analogWrite(mrightA, right);
+    analogWrite(mrightB, LOW);
   }else if(dir == '-'){
-    analogWrite(pinB, level);
-    analogWrite(pinA, LOW);
+    analogWrite(mleftB, left);
+    analogWrite(mleftA, LOW);
+    analogWrite(mrightB, right);
+    analogWrite(mrightA, LOW);
   }else{
-    analogWrite(pinB, LOW);
-    analogWrite(pinA, LOW);
+    analogWrite(mleftB, LOW);
+    analogWrite(mleftA, LOW);
+    analogWrite(mrightB, LOW);
+    analogWrite(mrightA, LOW);
     }
 }
-
